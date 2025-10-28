@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipe Fitter Calculations</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Quick and accurate calculations for pipefitters - offsets, bends, volumes, and more">
+    
+    <!-- iOS specific tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="PipeFit Calc">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState } = React;
+
+        function PipeFitterCalculations() {
+            const [units, setUnits] = useState('imperial'); // 'imperial' or 'metric'
+
+            // 45° Offset Calculator State
+            const [offset45, setOffset45] = useState('');
+
+            // Rolling Offset Calculator State
+            const [horizontalOffset, setHorizontalOffset] = useState('');
+            const [verticalOffset, setVerticalOffset] = useState('');
+
+            // Pipe Length with Fittings State
+            const [centerToCenter, setCenterToCenter] = useState('');
+            const [takeout1, setTakeout1] = useState('');
+            const [takeout2, setTakeout2] = useState('');
+
+            // 90° Bend Gain Calculator State
+            const [pipeDiameter, setPipeDiameter] = useState('');
+            const [bendRadius, setBendRadius] = useState('');
+
+            // Pipe Volume Calculator State
+            const [volumeDiameter, setVolumeDiameter] = useState('');
+            const [volumeLength, setVolumeLength] = useState('');
+
+            // Right Triangle Calculator State
+            const [sideA, setSideA] = useState('');
+            const [sideB, setSideB] = useState('');
+
+            // Unit labels
+            const smallUnit = units === 'imperial' ? 'inches' : 'mm';
+            const largeUnit = units === 'imperial' ? 'feet' : 'meters';
+            const volumeUnit = units === 'imperial' ? 'gallons' : 'liters';
+
+            // Calculation functions
+            const calculate45Offset = () => {
+                const val = parseFloat(offset45);
+                if (isNaN(val) || val <= 0) return { diagonal: '-', travel: '-' };
+                const diagonal = val * 1.414;
+                return {
+                    diagonal: diagonal.toFixed(2),
+                    travel: diagonal.toFixed(2)
+                };
+            };
+
+            const calculateRollingOffset = () => {
+                const h = parseFloat(horizontalOffset);
+                const v = parseFloat(verticalOffset);
+                if (isNaN(h) || isNaN(v) || h <= 0 || v <= 0) return { trueOffset: '-', diagonal: '-' };
+                const trueOffset = Math.sqrt(h * h + v * v);
+                const diagonal = trueOffset * 1.414;
+                return {
+                    trueOffset: trueOffset.toFixed(2),
+                    diagonal: diagonal.toFixed(2)
+                };
+            };
+
+            const calculatePipeLength = () => {
+                const ctc = parseFloat(centerToCenter);
+                const t1 = parseFloat(takeout1);
+                const t2 = parseFloat(takeout2);
+                if (isNaN(ctc) || isNaN(t1) || isNaN(t2)) return '-';
+                const length = ctc - t1 - t2;
+                return length > 0 ? length.toFixed(2) : '0.00';
+            };
+
+            const calculateBendGain = () => {
+                const dia = parseFloat(pipeDiameter);
+                const radius = parseFloat(bendRadius);
+                if (isNaN(dia) || isNaN(radius) || radius <= 0) return { arcLength: '-', gain: '-' };
+                const arcLength = (Math.PI * radius * 90) / 180;
+                const straightLegs = 2 * radius;
+                const gain = straightLegs - arcLength;
+                return {
+                    arcLength: arcLength.toFixed(2),
+                    gain: gain.toFixed(2)
+                };
+            };
+
+            const calculateVolume = () => {
+                const dia = parseFloat(volumeDiameter);
+                const len = parseFloat(volumeLength);
+                if (isNaN(dia) || isNaN(len) || dia <= 0 || len <= 0) return '-';
+                
+                const radius = dia / 2;
+                let volume;
+                
+                if (units === 'imperial') {
+                    // V = π × r² × L
+                    // Convert: diameter in inches, length in feet
+                    // Volume in cubic inches, then convert to gallons (231 cubic inches = 1 gallon)
+                    const lengthInches = len * 12;
+                    const volumeCubicInches = Math.PI * radius * radius * lengthInches;
+                    volume = volumeCubicInches / 231; // Convert to gallons
+                } else {
+                    // V = π × r² × L
+                    // diameter in mm, length in meters
+                    // Volume in cubic mm, then convert to liters (1,000,000 cubic mm = 1 liter)
+                    const lengthMm = len * 1000;
+                    const volumeCubicMm = Math.PI * radius * radius * lengthMm;
+                    volume = volumeCubicMm / 1000000; // Convert to liters
+                }
+                return volume.toFixed(2);
+            };
+
+            const calculateRightTriangle = () => {
+                const a = parseFloat(sideA);
+                const b = parseFloat(sideB);
+                if (isNaN(a) || isNaN(b) || a <= 0 || b <= 0) return '-';
+                const c = Math.sqrt(a * a + b * b);
+                return c.toFixed(2);
+            };
+
+            const results45 = calculate45Offset();
+            const resultsRolling = calculateRollingOffset();
+            const pipeLength = calculatePipeLength();
+            const resultsBend = calculateBendGain();
+            const volume = calculateVolume();
+            const hypotenuse = calculateRightTriangle();
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+                    <div className="max-w-4xl mx-auto px-4 py-8">
+                        {/* Header */}
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-bold text-slate-800 mb-3">Pipe Fitter Calculations</h1>
+                            <p className="text-slate-600 max-w-2xl mx-auto mb-6">
+                                Quick and accurate calculations for common pipefitting tasks. Choose your preferred unit system and get instant results for offsets, bends, volumes, and more.
+                            </p>
+                            
+                            {/* Unit Toggle */}
+                            <div className="inline-flex items-center bg-white rounded-lg shadow-md p-1">
+                                <button
+                                    onClick={() => setUnits('imperial')}
+                                    className={`px-6 py-2 rounded-md font-medium transition-all ${
+                                        units === 'imperial'
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-800'
+                                    }`}
+                                >
+                                    Imperial
+                                </button>
+                                <button
+                                    onClick={() => setUnits('metric')}
+                                    className={`px-6 py-2 rounded-md font-medium transition-all ${
+                                        units === 'metric'
+                                            ? 'bg-blue-600 text-white shadow-sm'
+                                            : 'text-slate-600 hover:text-slate-800'
+                                    }`}
+                                >
+                                    Metric
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Calculator Cards */}
+                        <div className="space-y-6">
+                            {/* 45° Offset Calculator */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">45° Offset Calculator</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Formula: Diagonal = Offset × 1.414
+                                </p>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Offset Distance ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={offset45}
+                                            onChange={(e) => setOffset45(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Enter offset"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">Diagonal Length:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{results45.diagonal} {smallUnit}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">Travel Distance:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{results45.travel} {smallUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Rolling Offset Calculator */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">Rolling Offset Calculator</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Formula: True Offset = √(Horizontal² + Vertical²), Diagonal = True Offset × 1.414
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Horizontal Offset ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={horizontalOffset}
+                                            onChange={(e) => setHorizontalOffset(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Horizontal"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Vertical Offset ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={verticalOffset}
+                                            onChange={(e) => setVerticalOffset(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Vertical"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">True Offset:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{resultsRolling.trueOffset} {smallUnit}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">Diagonal:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{resultsRolling.diagonal} {smallUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pipe Length with Fittings */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">Pipe Length with Fittings</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Formula: Pipe Length = Center-to-Center - Total Takeout
+                                </p>
+                                <div className="grid md:grid-cols-2 gap-4">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                Center-to-Center Distance ({smallUnit})
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={centerToCenter}
+                                                onChange={(e) => setCenterToCenter(e.target.value)}
+                                                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="Center distance"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                Fitting Takeout 1 ({smallUnit})
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={takeout1}
+                                                onChange={(e) => setTakeout1(e.target.value)}
+                                                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="First fitting"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-700 mb-2">
+                                                Fitting Takeout 2 ({smallUnit})
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={takeout2}
+                                                onChange={(e) => setTakeout2(e.target.value)}
+                                                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="Second fitting"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <div className="bg-blue-50 p-6 rounded-lg w-full border-2 border-blue-200">
+                                            <span className="text-sm text-slate-600 block mb-2">Cut Pipe Length:</span>
+                                            <span className="text-3xl font-bold text-blue-600">{pipeLength} {smallUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 90° Bend Gain Calculator */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">90° Bend Gain Calculator</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Formula: Gain = (2 × Radius) - Arc Length
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Pipe Diameter ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={pipeDiameter}
+                                            onChange={(e) => setPipeDiameter(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Diameter"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Bend Radius ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={bendRadius}
+                                            onChange={(e) => setBendRadius(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Radius"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">Arc Length:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{resultsBend.arcLength} {smallUnit}</span>
+                                        </div>
+                                        <div className="bg-slate-50 p-3 rounded">
+                                            <span className="text-sm text-slate-600">Gain:</span>
+                                            <span className="ml-2 font-semibold text-slate-800">{resultsBend.gain} {smallUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Pipe Volume Calculator */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">Pipe Volume Calculator</h2>
+                                <p className="text-sm text-slate-500 mb-1">
+                                    Formula: V = π × r² × Length (where radius = diameter ÷ 2)
+                                </p>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Shortcut: V = 0.0408 × D² × Length (diameter in {smallUnit}, length in {largeUnit})
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Pipe Diameter ({smallUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={volumeDiameter}
+                                            onChange={(e) => setVolumeDiameter(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Diameter"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Length ({largeUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={volumeLength}
+                                            onChange={(e) => setVolumeLength(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Length"
+                                        />
+                                    </div>
+                                    <div className="flex items-center">
+                                        <div className="bg-green-50 p-4 rounded-lg w-full border-2 border-green-200">
+                                            <span className="text-sm text-slate-600 block mb-1">Volume:</span>
+                                            <span className="text-2xl font-bold text-green-600">{volume} {volumeUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Triangle Calculator */}
+                            <div className="bg-white rounded-lg shadow-md p-6">
+                                <h2 className="text-2xl font-semibold text-slate-800 mb-2">Right Triangle / Pythagorean</h2>
+                                <p className="text-sm text-slate-500 mb-4">
+                                    Formula: c = √(a² + b²)
+                                </p>
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Side A ({largeUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={sideA}
+                                            onChange={(e) => setSideA(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Side A"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                                            Side B ({largeUnit})
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={sideB}
+                                            onChange={(e) => setSideB(e.target.value)}
+                                            className="w-full px-4 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            placeholder="Side B"
+                                        />
+                                    </div>
+                                    <div className="flex items-center">
+                                        <div className="bg-purple-50 p-4 rounded-lg w-full border-2 border-purple-200">
+                                            <span className="text-sm text-slate-600 block mb-1">Hypotenuse (c):</span>
+                                            <span className="text-2xl font-bold text-purple-600">{hypotenuse} {largeUnit}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="mt-8 text-center text-sm text-slate-500">
+                            <p>All calculations update in real-time as you type. Results are rounded to 2 decimal places.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<PipeFitterCalculations />, document.getElementById('root'));
+        
+        // Register service worker for offline functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => console.log('Service Worker registered'))
+                    .catch(err => console.log('Service Worker registration failed'));
+            });
+        }
+    </script>
+</body>
+</html>
